@@ -1,5 +1,5 @@
 import React from "react";
-import { Task, Category } from "../Main";
+import { Category, Task } from "../../types";
 
 interface TasksListProps {
   tasks: Task[];
@@ -13,7 +13,7 @@ const TasksList: React.FC<TasksListProps> = ({
   getCategoryForTask,
 }) => {
   return (
-    <div
+    <section
       className={`w-full space-y-2 bg-white border-2 border-amber-700 rounded min-h-50 flex flex-col items-center ${
         tasks.length !== 0 ? "justify-start py-2" : "justify-center"
       }`}
@@ -55,7 +55,7 @@ const TasksList: React.FC<TasksListProps> = ({
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

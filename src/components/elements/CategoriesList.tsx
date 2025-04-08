@@ -1,5 +1,5 @@
 import React from "react";
-import { Category } from "../Main";
+import { Category } from "../../types";
 
 interface CategoryProps {
   categories: Category[];
@@ -7,7 +7,7 @@ interface CategoryProps {
   onSelectCategory?: (id: string) => void;
 }
 
-const Categories: React.FC<CategoryProps> = ({
+const CategoriesList: React.FC<CategoryProps> = ({
   categories,
   onDeleteCategory,
   onSelectCategory,
@@ -48,4 +48,4 @@ const Categories: React.FC<CategoryProps> = ({
   );
 };
 
-export default Categories;
+export default CategoriesList;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Category } from "../Main";
+import { Category } from "../../types";
 
 interface CategoryFilterProps {
   categories: Category[];
@@ -13,7 +13,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   setFilterCategoryId,
 }) => {
   return (
-    <div className="bg-amber-200 p-3 rounded border-2 border-amber-700 flex justify-center items-center gap-2">
+    <section className="bg-amber-200 p-3 rounded border-2 border-amber-700 flex justify-center items-center gap-2">
       <label className="flex text-amber-800 font-bold text-sm leading-4">
         Filter Tasks by Category
       </label>
@@ -30,7 +30,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           </option>
         ))}
       </select>
-    </div>
+    </section>
   );
 };
 

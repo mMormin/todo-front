@@ -1,31 +1,37 @@
-import React, { useState } from "react";
-import { useRef } from "react";
-import { useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Categories from "./elements/CategoriesList";
 import TasksList from "./elements/TasksList";
 import EmojiPicker from "./elements/EmojiPicker";
 import CategoryFilter from "./elements/CategoryFilter";
-
-export interface Category {
-  id: string;
-  name: string;
-  emoji: string;
-}
-
-export interface Task {
-  id: number;
-  text: string;
-  categoryId: string;
-  completed: boolean;
-}
+import { useTasks } from "../hooks/useTask";
+import { useCategories } from "../hooks/useCategory";
+import { handleKeyPress } from "../utils/keyboard";
+import { getCategoryEmoji } from "../utils/category";
+import { Category, Task } from "../types";
 
 const Main: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  // Tasks and Categories Hooks
+  const {
+    tasks,
+    addTask,
+    toggleComplete,
+    removeTasksByCategory,
+    getTasksByCategory,
+  } = useTasks();
+
+  const {
+    categories,
+    addCategory,
+    deleteCategory,
+    getCategoryById,
+    getDefaultCategory,
+  } = useCategories();
+
+  // Main States
   const [input, setInput] = useState<string>("");
   const [categoryInput, setCategoryInput] = useState<string>("");
   const [showCategories, setShowCategories] = useState<boolean>(false);
   const [selectedEmoji, setSelectedEmoji] = useState<string>("😃");
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showEmojiPickerForCategory, setShowEmojiPickerForCategory] =
     useState<boolean>(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -33,96 +39,36 @@ const Main: React.FC = () => {
   );
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
   const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<Category[]>([
-    { id: "1", name: "Hooman", emoji: "👤" },
-    { id: "2", name: "Work", emoji: "💼" },
-    { id: "3", name: "Food", emoji: "🛒" },
-  ]);
 
+  // Refs
   const categoriesMenuRef = useRef<HTMLDivElement>(null);
+
+  const getCategoryForTask = (task: Task): Category => {
+    return getCategoryById(task.categoryId) || getDefaultCategory();
+  };
+
+  const handleAddTask = () => {
+    if (input.trim()) {
+      addTask(input, selectedCategoryId || getDefaultCategory().id);
+      setInput("");
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
 
-  const handleCategoryInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setCategoryInput(e.target.value);
-  };
-
-  const handleAddTask = () => {
-    if (!input.trim()) return;
-
-    const match = input.match(/^(.+?)(?:\s+#([^\s]+))?$/);
-
-    if (match) {
-      const todoText = match[1].trim();
-      const categoryName = match[2]?.trim();
-
-      let categoryObj = categoryName
-        ? categories.find((cat) => cat.name === categoryName)
-        : categories[0];
-
-      if (categoryName && !categoryObj) {
-        const newCategory: Category = {
-          id: Date.now().toString(),
-          name: categoryName,
-          emoji: "😃",
-        };
-        setCategories([...categories, newCategory]);
-        categoryObj = newCategory;
-      }
-
-      const newTask: Task = {
-        id: Date.now(),
-        text: todoText,
-        categoryId:
-          selectedCategoryId ||
-          (categoryObj ? categoryObj.id : categories[0].id),
-        completed: false,
-      };
-
-      setTasks([...tasks, newTask]);
-      setInput("");
-    }
-  };
-
   const handleAddCategory = () => {
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name: categoryInput.trim() || `Default Task ${categories.length + 1}`,
-      emoji: selectedEmoji,
-    };
+    const newCategory = addCategory(categoryInput, selectedEmoji);
+    resetCategoryForm();
+    return newCategory;
+  };
 
-    setCategories([...categories, newCategory]);
+  const resetCategoryForm = () => {
     setCategoryInput("");
     setSelectedEmoji("😃");
     setShowCategoryInput(false);
-    setShowEmojiPicker(false);
-  };
-
-  const toggleComplete = (id: number) => {
-    setTasks(
-      tasks.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
-  };
-
-  const getCategoryForTask = (todo: Task): Category => {
-    return (
-      categories.find((cat) => cat.id === todo.categoryId) || categories[0]
-    );
-  };
-
-  const handleKeyPress = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    action: () => void
-  ) => {
-    if (e.key === "Enter") {
-      action();
-    }
+    setShowEmojiPickerForCategory(false);
   };
 
   const handleSelectCategory = (id: string) => {
@@ -131,10 +77,31 @@ const Main: React.FC = () => {
   };
 
   const handleDeleteCategory = (id: string) => {
-    setCategories((prev) => prev.filter((cat) => cat.id !== id));
-    setTasks((prev) => prev.filter((task) => task.categoryId !== id));
+    deleteCategory(id);
+    removeTasksByCategory(id);
+
+    if (selectedCategoryId === id) {
+      setSelectedCategoryId(null);
+    }
+    if (filterCategoryId === id) {
+      setFilterCategoryId(null);
+    }
   };
 
+  const handleCategoryInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCategoryInput(e.target.value);
+  };
+
+  const toggleCategoryInput = () => {
+    setShowCategoryInput(!showCategoryInput);
+    if (!showCategoryInput) {
+      setShowEmojiPickerForCategory(false);
+    }
+  };
+
+  // Click outside div UseEffect
   useEffect(() => {
     if (!showCategories) return;
 
@@ -148,21 +115,20 @@ const Main: React.FC = () => {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCategories]);
 
   return (
     <div className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
+      {/* CATEGORY FILTER */}
       <CategoryFilter
         categories={categories}
         filterCategoryId={filterCategoryId}
         setFilterCategoryId={setFilterCategoryId}
       />
 
-      <div className="flex">
+      {/* ADD NEW TASK */}
+      <section className="flex">
         <input
           type="text"
           value={input}
@@ -177,10 +143,7 @@ const Main: React.FC = () => {
             onClick={() => setShowCategories(!showCategories)}
             className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:bg-amber-900 transition cursor-pointer leading-none"
           >
-            {selectedCategoryId
-              ? categories.find((cat) => cat.id === selectedCategoryId)
-                  ?.emoji || ":)"
-              : "📙"}
+            {getCategoryEmoji(categories, selectedCategoryId)}
           </button>
 
           <button
@@ -190,13 +153,13 @@ const Main: React.FC = () => {
             +
           </button>
 
+          {/* CATEGORY SELECTION SUBMENU */}
           {showCategories && (
             <div
               ref={categoriesMenuRef}
               className="-left-1 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
             >
               <p className="text-xs font-bold text-amber-800">Categories:</p>
-
               <Categories
                 categories={categories}
                 onSelectCategory={handleSelectCategory}
@@ -204,41 +167,36 @@ const Main: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
+      {/* TASKS LIST */}
       <TasksList
-        tasks={
-          filterCategoryId
-            ? tasks.filter((task) => task.categoryId === filterCategoryId)
-            : tasks
-        }
+        tasks={filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks}
         toggleComplete={toggleComplete}
         getCategoryForTask={getCategoryForTask}
       />
 
-      <div className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
+      {/* SEPARATOR */}
+      <section className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
         <p className="pb-3">...</p>
-      </div>
+      </section>
 
-      <div className="bg-amber-200 p-3 rounded border-2 border-amber-700">
+      {/* CATEGORIES LIST */}
+      <section className="bg-amber-200 p-3 rounded border-2 border-amber-700">
         <div className="flex justify-between items-center mb-2">
           <p className="text-amber-800 text-sm font-bold">
             Available Categories:
           </p>
 
           <button
-            onClick={() => {
-              setShowCategoryInput(!showCategoryInput);
-              if (!showCategoryInput) {
-                setShowEmojiPicker(false);
-              }
-            }}
+            onClick={toggleCategoryInput}
             className="bg-amber-700 text-amber-50 px-2 py-1 text-xs font-bold tracking-wide rounded hover:bg-amber-800 cursor-pointer"
           >
             {showCategoryInput ? "< Back" : "+ Add a category"}
           </button>
         </div>
 
+        {/* ADD NEW CATEGORY */}
         {showCategoryInput && (
           <div className="mb-3">
             <div className="flex mb-2 relative">
@@ -268,6 +226,7 @@ const Main: React.FC = () => {
                 onChange={handleCategoryInputChange}
                 placeholder="Category Name"
                 className="flex-grow p-2 rounded bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none text-sm"
+                onKeyUp={(e) => handleKeyPress(e, handleAddCategory)}
               />
             </div>
 
@@ -280,13 +239,14 @@ const Main: React.FC = () => {
           </div>
         )}
 
+        {/* CATEGORIES LIST */}
         <div className="flex flex-wrap gap-2">
           <Categories
             categories={categories}
             onDeleteCategory={handleDeleteCategory}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 };
