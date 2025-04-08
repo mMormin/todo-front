@@ -119,7 +119,7 @@ const Main: React.FC = () => {
   }, [showCategories]);
 
   return (
-    <div className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
+    <main className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
       {/* CATEGORY FILTER */}
       <CategoryFilter
         categories={categories}
@@ -128,7 +128,7 @@ const Main: React.FC = () => {
       />
 
       {/* ADD NEW TASK */}
-      <section className="flex">
+      <section className="flex flex-wrap lg:flex-nowrap">
         <input
           type="text"
           value={input}
@@ -138,17 +138,17 @@ const Main: React.FC = () => {
           onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
         />
 
-        <div className="relative flex gap-2">
+        <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
           <button
             onClick={() => setShowCategories(!showCategories)}
-            className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:bg-amber-900 transition cursor-pointer leading-none"
+            className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-2xl font-bold bg-amber-800 text-amber-50 px-4 h-10 lg:h-auto rounded mg:rounded-r hover:bg-amber-900 transition cursor-pointer leading-none"
           >
             {getCategoryEmoji(categories, selectedCategoryId)}
           </button>
 
           <button
             onClick={handleAddTask}
-            className="w-[50px] flex justify-center items-center text-3xl font-bold bg-amber-800 text-amber-50 px-4 rounded hover:text-4xl hover:bg-amber-900 transition cursor-pointer leading-none"
+            className="lg:w-[50px]  max-w-full flex justify-center items-center lg:text-3xl font-bold bg-amber-800 text-amber-50 px-4 h-10 lg:h-auto rounded hover:text-4xl hover:bg-amber-900 transition cursor-pointer leading-none"
           >
             +
           </button>
@@ -216,7 +216,6 @@ const Main: React.FC = () => {
                     setShowEmojiPickerForCategory(false);
                   }}
                   onClose={() => setShowEmojiPickerForCategory(false)}
-                  className="top-full left-0 mt-2"
                 />
               )}
 
@@ -247,7 +246,7 @@ const Main: React.FC = () => {
           />
         </div>
       </section>
-    </div>
+    </main>
   );
 };
 
