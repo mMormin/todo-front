@@ -16,6 +16,7 @@ const Main: React.FC = () => {
     addTask,
     toggleComplete,
     removeTasksByCategory,
+    removeTaskById,
     getTasksByCategory,
   } = useTasks();
 
@@ -52,6 +53,10 @@ const Main: React.FC = () => {
       addTask(input, selectedCategoryId || getDefaultCategory().id);
       setInput("");
     }
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    removeTaskById(taskId);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,44 +133,59 @@ const Main: React.FC = () => {
       />
 
       {/* ADD NEW TASK */}
-      <section className="flex flex-wrap lg:flex-nowrap">
-        <input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Write your new task here ..."
-          className="flex-grow p-2 rounded-l bg-amber-50 border-2 border-amber-700 text-amber-900 focus:outline-none"
-          onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
-        />
+      <section className="flex flex-col">
+        <label htmlFor="taskInput" className="text-amber-800 font-bold">
+          T.A.S.K Creator
+        </label>
 
-        <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-          <button
-            onClick={() => setShowCategories(!showCategories)}
-            className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-2xl font-bold bg-amber-700 lg:-ml-1 text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
-          >
-            {getCategoryEmoji(categories, selectedCategoryId)}
-          </button>
+        <div className="flex flex-wrap lg:flex-nowrap">
+          <input
+            id="taskInput"
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Write your new task here ..."
+            className="flex-grow p-2 rounded-l bg-white border-2 border-amber-700 text-amber-900 focus:outline-none"
+            onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
+          />
 
-          <button
-            onClick={handleAddTask}
-            className="lg:w-[50px]  max-w-full flex justify-center items-center lg:text-3xl font-bold bg-amber-800 text-amber-50 px-4 h-10 lg:h-auto rounded hover:text-4xl hover:bg-amber-900 transition cursor-pointer leading-none"
-          >
-            +
-          </button>
-
-          {/* CATEGORY SELECTION SUBMENU */}
-          {showCategories && (
-            <div
-              ref={categoriesMenuRef}
-              className="-left-1 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
+          <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+            <button
+              onClick={() => setShowCategories(!showCategories)}
+              className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-xl font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
             >
-              <p className="text-xs font-bold text-amber-800">Categories:</p>
-              <Categories
-                categories={categories}
-                onSelectCategory={handleSelectCategory}
-              />
+              <span className="group-hover:scale-80 transition-transform duration-300 ease-in-out">
+                {getCategoryEmoji(
+                  categories,
+                  selectedCategoryId ||
+                    (categories.length > 0 ? categories[0].id : null)
+                )}
+              </span>
+            </button>
+
+            <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
+              <button
+                onClick={handleAddTask}
+                className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out text-2xl lg:text-xl font-bold bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
+              >
+                ADD
+              </button>
             </div>
-          )}
+
+            {/* CATEGORY SELECTION SUBMENU */}
+            {showCategories && (
+              <div
+                ref={categoriesMenuRef}
+                className="-left-1 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
+              >
+                <p className="text-xs font-bold text-amber-800">Categories:</p>
+                <Categories
+                  categories={categories}
+                  onSelectCategory={handleSelectCategory}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -174,6 +194,7 @@ const Main: React.FC = () => {
         tasks={filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks}
         toggleComplete={toggleComplete}
         getCategoryForTask={getCategoryForTask}
+        onDeleteTask={handleDeleteTask}
       />
 
       {/* SEPARATOR */}

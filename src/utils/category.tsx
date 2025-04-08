@@ -24,7 +24,7 @@ export const findCategoryById = (
 export const getCategoryEmoji = (
   categories: Category[],
   id: string | null,
-  defaultEmoji: string = "📙"
+  defaultEmoji: string = "😃"
 ): string => {
   const category = findCategoryById(categories, id);
   return category?.emoji || defaultEmoji;

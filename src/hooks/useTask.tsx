@@ -28,6 +28,10 @@ export const useTasks = (initialTasks: Task[] = []) => {
     );
   };
 
+  const removeTaskById = (taskId: number) => {
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+  };
+
   const removeTasksByCategory = (categoryId: string): void => {
     setTasks((prevTasks) =>
       prevTasks.filter((task) => task.categoryId !== categoryId)
@@ -54,6 +58,7 @@ export const useTasks = (initialTasks: Task[] = []) => {
     tasks,
     addTask,
     toggleComplete,
+    removeTaskById,
     removeTasksByCategory,
     getTasksByCategory,
     updateTask,

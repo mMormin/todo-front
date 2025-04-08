@@ -51,7 +51,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         ${
           isMobile
             ? "fixed inset-0 flex items-center justify-center"
-            : "absolute left-14 top-0"
+            : "absolute left-14 bottom-0"
         }
         z-50 ${className || ""}
       `}

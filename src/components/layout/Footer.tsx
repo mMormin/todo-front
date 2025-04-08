@@ -2,7 +2,7 @@ import React from "react";
 
 const Footer: React.FC = () => {
   return (
-    <footer className="text-center py-4 text-gray-500">
+    <footer className="fixed bottom-0 text-center py-2 text-white w-full bg-gray-800 z-0 border-b-2 border-amber-600">
       © {new Date().getFullYear()} Maxime Mormin-Boudot
     </footer>
   );
