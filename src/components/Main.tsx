@@ -101,7 +101,7 @@ const Main: React.FC = () => {
     }
   };
 
-  // Click outside div UseEffect
+  // UseEffect - Handle outside div click
   useEffect(() => {
     if (!showCategories) return;
 
@@ -141,7 +141,7 @@ const Main: React.FC = () => {
         <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
           <button
             onClick={() => setShowCategories(!showCategories)}
-            className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-2xl font-bold bg-amber-800 text-amber-50 px-4 h-10 lg:h-auto rounded mg:rounded-r hover:bg-amber-900 transition cursor-pointer leading-none"
+            className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-2xl font-bold bg-amber-700 lg:-ml-1 text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
           >
             {getCategoryEmoji(categories, selectedCategoryId)}
           </button>
