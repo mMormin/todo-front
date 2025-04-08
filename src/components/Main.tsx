@@ -1,13 +1,19 @@
 import React, { useState } from "react";
-import Categories from "./elements/Categories";
+import Categories from "./elements/CategoriesList";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+import TasksList from "./elements/TasksList";
+import EmojiPicker from "./elements/EmojiPicker";
+import { useRef } from "react";
+import { useEffect } from "react";
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
   emoji: string;
 }
 
-interface Todo {
+export interface Task {
   id: number;
   text: string;
   categoryId: string;
@@ -15,52 +21,25 @@ interface Todo {
 }
 
 const Main: React.FC = () => {
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState<string>("");
   const [categoryInput, setCategoryInput] = useState<string>("");
-  const [showCategoriesMenu, setShowCategoriesMenu] = useState<boolean>(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [showEmojiPickerForCategory, setShowEmojiPickerForCategory] =
+    useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null
+  );
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-  const [selectedEmoji, setSelectedEmoji] = useState<string>("📝");
+  const [selectedEmoji, setSelectedEmoji] = useState<string>("😃");
 
-  // Collection d'emojis pour le sélecteur
-  const emojis: string[] = [
-    "📝",
-    "💼",
-    "🏠",
-    "🛒",
-    "🎮",
-    "🎵",
-    "🏋️",
-    "📚",
-    "✈️",
-    "🎬",
-    "👨‍👩‍👧‍👦",
-    "🐶",
-    "🌱",
-    "🍕",
-    "🎨",
-    "💻",
-    "📱",
-    "🚗",
-    "💰",
-    "⏰",
-    "🎁",
-    "📞",
-    "🎯",
-    "🎓",
-    "🌍",
-    "❤️",
-    "🔧",
-    "🏆",
-    "🧩",
-    "🔍",
-  ];
+  const categoriesMenuRef = useRef<HTMLDivElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([
-    { id: "1", name: "Personnel", emoji: "👤" },
-    { id: "2", name: "Travail", emoji: "💼" },
-    { id: "3", name: "Courses", emoji: "🛒" },
+    { id: "1", name: "Hooman", emoji: "👤" },
+    { id: "2", name: "Work", emoji: "💼" },
+    { id: "3", name: "Food", emoji: "🛒" },
   ]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,7 +52,7 @@ const Main: React.FC = () => {
     setCategoryInput(e.target.value);
   };
 
-  const handleAddTodo = () => {
+  const handleAddTask = () => {
     if (!input.trim()) return;
 
     const match = input.match(/^(.+?)(?:\s+#([^\s]+))?$/);
@@ -90,20 +69,22 @@ const Main: React.FC = () => {
         const newCategory: Category = {
           id: Date.now().toString(),
           name: categoryName,
-          emoji: "📝",
+          emoji: "😃",
         };
         setCategories([...categories, newCategory]);
         categoryObj = newCategory;
       }
 
-      const newTodo: Todo = {
+      const newTask: Task = {
         id: Date.now(),
         text: todoText,
-        categoryId: categoryObj ? categoryObj.id : categories[0].id,
+        categoryId:
+          selectedCategoryId ||
+          (categoryObj ? categoryObj.id : categories[0].id),
         completed: false,
       };
 
-      setTodos([...todos, newTodo]);
+      setTasks([...tasks, newTask]);
       setInput("");
     }
   };
@@ -111,26 +92,26 @@ const Main: React.FC = () => {
   const handleAddCategory = () => {
     const newCategory: Category = {
       id: Date.now().toString(),
-      name: categoryInput.trim() || `Catégorie ${categories.length + 1}`, // Nom optionnel
+      name: categoryInput.trim() || `Default Task ${categories.length + 1}`,
       emoji: selectedEmoji,
     };
 
     setCategories([...categories, newCategory]);
     setCategoryInput("");
-    setSelectedEmoji("📝");
+    setSelectedEmoji("😃");
     setShowCategoryInput(false);
     setShowEmojiPicker(false);
   };
 
   const toggleComplete = (id: number) => {
-    setTodos(
-      todos.map((todo) =>
+    setTasks(
+      tasks.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     );
   };
 
-  const getCategoryForTodo = (todo: Todo): Category => {
+  const getCategoryForTask = (todo: Task): Category => {
     return (
       categories.find((cat) => cat.id === todo.categoryId) || categories[0]
     );
@@ -145,9 +126,34 @@ const Main: React.FC = () => {
     }
   };
 
-  const handleOpenCategories = () => {
-    setShowCategoriesMenu(!showCategoriesMenu);
+  const handleSelectCategory = (id: string) => {
+    setSelectedCategoryId(id);
+    setShowCategories(false);
   };
+
+  const handleDeleteCategory = (id: string) => {
+    setCategories((prev) => prev.filter((cat) => cat.id !== id));
+    setTasks((prev) => prev.filter((task) => task.categoryId !== id));
+  };
+
+  useEffect(() => {
+    if (!showCategories) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        categoriesMenuRef.current &&
+        !categoriesMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowCategories(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showCategories]);
 
   return (
     <div className="w-full bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-900">
@@ -157,74 +163,56 @@ const Main: React.FC = () => {
           value={input}
           onChange={handleInputChange}
           placeholder="Add a new task..."
-          className="flex-grow p-2 rounded-l bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none font-mono"
-          onKeyUp={(e) => handleKeyPress(e, handleAddTodo)}
+          className="flex-grow p-2 rounded-l bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none"
+          onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
         />
-        <div className="flex gap-2">
+
+        <div className="relative flex gap-2">
           <button
-            onClick={handleOpenCategories}
-            className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:text-3xl hover:bg-amber-900 transition font-mono cursor-pointer leading-none"
+            onClick={() => setShowCategories(!showCategories)}
+            className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:text-3xl hover:bg-amber-900 transition cursor-pointer leading-none"
           >
-            :)
+            {selectedCategoryId
+              ? categories.find((cat) => cat.id === selectedCategoryId)
+                  ?.emoji || ":)"
+              : ":)"}
           </button>
+
           <button
-            onClick={handleAddTodo}
-            className="w-[50px] flex justify-center items-center text-3xl font-bold bg-amber-800 text-amber-50 px-4 rounded hover:text-4xl hover:bg-amber-900 transition font-mono cursor-pointer leading-none"
+            onClick={handleAddTask}
+            className="w-[50px] flex justify-center items-center text-3xl font-bold bg-amber-800 text-amber-50 px-4 rounded hover:text-4xl hover:bg-amber-900 transition cursor-pointer leading-none"
           >
             +
           </button>
 
-          {showCategoriesMenu && (
-            <div className="absolute w-27 h-32 bg-amber-100 p-4 rounded border-2 border-amber-800">
-              <Categories categories={categories} />
+          {showCategories && (
+            <div
+              ref={categoriesMenuRef}
+              className="-left-1 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
+            >
+              <p className="text-xs font-bold text-amber-800">Categories:</p>
+
+              <Categories
+                categories={categories}
+                onSelectCategory={handleSelectCategory}
+              />
             </div>
           )}
         </div>
       </div>
 
-      <div className="space-y-1 mb-6">
-        {todos.length === 0 ? (
-          <p className="text-center text-amber-700 italic font-mono">
-            No tasks added for the moment. Add some!
-          </p>
-        ) : (
-          todos.map((todo) => {
-            const category = getCategoryForTodo(todo);
-            return (
-              <div
-                key={todo.id}
-                className="flex items-center p-3 bg-amber-50 border-2 border-amber-700 rounded"
-              >
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => toggleComplete(todo.id)}
-                  className="mr-3 h-5 w-5 accent-amber-700"
-                />
-                <span
-                  className={`flex-grow font-mono ${
-                    todo.completed
-                      ? "line-through text-amber-600"
-                      : "text-amber-900"
-                  }`}
-                >
-                  {todo.text}
-                </span>
-                <span className="bg-amber-200 text-amber-800 px-2 py-1 text-xs rounded-full font-mono flex items-center">
-                  <span className="mr-1">{category.emoji}</span>
-                  {category.name && `#${category.name}`}
-                </span>
-              </div>
-            );
-          })
-        )}
-      </div>
+      <TasksList
+        tasks={tasks}
+        toggleComplete={toggleComplete}
+        getCategoryForTask={getCategoryForTask}
+      />
 
       <div className="mt-6 bg-amber-200 p-3 rounded border-2 border-amber-700">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-amber-800 font-mono text-sm">
+          <p className="text-amber-800 text-sm font-bold">
             Available Categories:
           </p>
+
           <button
             onClick={() => {
               setShowCategoryInput(!showCategoryInput);
@@ -232,7 +220,7 @@ const Main: React.FC = () => {
                 setShowEmojiPicker(false);
               }
             }}
-            className="bg-amber-700 text-amber-50 px-2 py-1 text-xs font-bold tracking-wide rounded hover:bg-amber-800 font-mono cursor-pointer"
+            className="bg-amber-700 text-amber-50 px-2 py-1 text-xs font-bold tracking-wide rounded hover:bg-amber-800 cursor-pointer"
           >
             {showCategoryInput ? "< Back" : "+ Add a category"}
           </button>
@@ -240,42 +228,39 @@ const Main: React.FC = () => {
 
         {showCategoryInput && (
           <div className="mb-3">
-            <div className="flex mb-2">
+            <div className="flex mb-2 relative">
               <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-2 rounded bg-amber-50 border-2 border-amber-800 text-2xl mr-2"
+                onClick={() =>
+                  setShowEmojiPickerForCategory(!showEmojiPickerForCategory)
+                }
+                className="p-2 rounded bg-amber-50 border-2 border-amber-800 text-2xl mr-2 cursor-pointer"
               >
                 {selectedEmoji}
               </button>
+
+              {showEmojiPickerForCategory && (
+                <EmojiPicker
+                  onSelect={(emoji) => {
+                    setSelectedEmoji(emoji);
+                    setShowEmojiPickerForCategory(false);
+                  }}
+                  onClose={() => setShowEmojiPickerForCategory(false)}
+                  className="top-full left-0 mt-2"
+                />
+              )}
+
               <input
                 type="text"
                 value={categoryInput}
                 onChange={handleCategoryInputChange}
-                placeholder="Nom de catégorie (optionnel)"
-                className="flex-grow p-2 rounded bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none font-mono text-sm"
+                placeholder="Category Name"
+                className="flex-grow p-2 rounded bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none text-sm"
               />
             </div>
 
-            {showEmojiPicker && (
-              <div className="p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap">
-                {emojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => {
-                      setSelectedEmoji(emoji);
-                      setShowEmojiPicker(false);
-                    }}
-                    className="p-1 text-xl hover:bg-amber-200 rounded"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-
             <button
               onClick={handleAddCategory}
-              className="w-full bg-amber-800 text-amber-50 font-bold px-3 py-1 rounded hover:bg-amber-900 font-mono text-sm"
+              className="w-full bg-amber-800 text-amber-50 font-bold px-3 py-1 rounded hover:bg-amber-900 text-sm cursor-pointer"
             >
               + Add The New Category
             </button>
@@ -283,7 +268,10 @@ const Main: React.FC = () => {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Categories categories={categories} />
+          <Categories
+            categories={categories}
+            onDeleteCategory={handleDeleteCategory}
+          />
         </div>
       </div>
     </div>
