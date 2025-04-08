@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import Categories from "./elements/CategoriesList";
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
-import TasksList from "./elements/TasksList";
-import EmojiPicker from "./elements/EmojiPicker";
 import { useRef } from "react";
 import { useEffect } from "react";
+import Categories from "./elements/CategoriesList";
+import TasksList from "./elements/TasksList";
+import EmojiPicker from "./elements/EmojiPicker";
+import CategoryFilter from "./elements/CategoryFilter";
 
 export interface Category {
   id: string;
@@ -24,23 +23,23 @@ const Main: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState<string>("");
   const [categoryInput, setCategoryInput] = useState<string>("");
-  const [showCategories, setShowCategories] = useState(false);
+  const [showCategories, setShowCategories] = useState<boolean>(false);
+  const [selectedEmoji, setSelectedEmoji] = useState<string>("😃");
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showEmojiPickerForCategory, setShowEmojiPickerForCategory] =
-    useState(false);
+    useState<boolean>(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
   );
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-  const [selectedEmoji, setSelectedEmoji] = useState<string>("😃");
-
-  const categoriesMenuRef = useRef<HTMLDivElement>(null);
-
+  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([
     { id: "1", name: "Hooman", emoji: "👤" },
     { id: "2", name: "Work", emoji: "💼" },
     { id: "3", name: "Food", emoji: "🛒" },
   ]);
+
+  const categoriesMenuRef = useRef<HTMLDivElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -156,26 +155,32 @@ const Main: React.FC = () => {
   }, [showCategories]);
 
   return (
-    <div className="w-full bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-900">
-      <div className="mb-6 flex">
+    <div className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
+      <CategoryFilter
+        categories={categories}
+        filterCategoryId={filterCategoryId}
+        setFilterCategoryId={setFilterCategoryId}
+      />
+
+      <div className="flex">
         <input
           type="text"
           value={input}
           onChange={handleInputChange}
-          placeholder="Add a new task..."
-          className="flex-grow p-2 rounded-l bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none"
+          placeholder="Write your new task here ..."
+          className="flex-grow p-2 rounded-l bg-amber-50 border-2 border-amber-700 text-amber-900 focus:outline-none"
           onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
         />
 
         <div className="relative flex gap-2">
           <button
             onClick={() => setShowCategories(!showCategories)}
-            className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:text-3xl hover:bg-amber-900 transition cursor-pointer leading-none"
+            className="w-[50px] flex justify-center items-center text-2xl font-bold bg-amber-800 text-amber-50 px-4 rounded-r hover:bg-amber-900 transition cursor-pointer leading-none"
           >
             {selectedCategoryId
               ? categories.find((cat) => cat.id === selectedCategoryId)
                   ?.emoji || ":)"
-              : ":)"}
+              : "📙"}
           </button>
 
           <button
@@ -202,12 +207,20 @@ const Main: React.FC = () => {
       </div>
 
       <TasksList
-        tasks={tasks}
+        tasks={
+          filterCategoryId
+            ? tasks.filter((task) => task.categoryId === filterCategoryId)
+            : tasks
+        }
         toggleComplete={toggleComplete}
         getCategoryForTask={getCategoryForTask}
       />
 
-      <div className="mt-6 bg-amber-200 p-3 rounded border-2 border-amber-700">
+      <div className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
+        <p className="pb-3">...</p>
+      </div>
+
+      <div className="bg-amber-200 p-3 rounded border-2 border-amber-700">
         <div className="flex justify-between items-center mb-2">
           <p className="text-amber-800 text-sm font-bold">
             Available Categories:
