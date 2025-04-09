@@ -62,7 +62,7 @@ export const useCategoryStore = create<CategoryState>()(
       },
     }),
     {
-      name: "category-store",
+      name: "categories",
     }
   )
 );

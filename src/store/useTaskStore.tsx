@@ -81,7 +81,7 @@ export const useTaskStore = create<TaskState>()(
       },
     }),
     {
-      name: "task-store",
+      name: "tasks",
     }
   )
 );

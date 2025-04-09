@@ -3,13 +3,14 @@ import Categories from "./elements/CategoriesList";
 import TasksList from "./elements/TasksList";
 import EmojiPicker from "./elements/EmojiPicker";
 import CategoryFilter from "./elements/CategoryFilter";
-import { useTasks } from "../hooks/useTask";
-import { useCategories } from "../hooks/useCategory";
 import { handleKeyPress } from "../utils/keyboard";
 import { getCategoryEmoji } from "../utils/category";
 import { Category, Task } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
 import { useCategoryStore } from "../store/useCategoryStore";
+import { taskInputSchema } from "../validation/taskSchema";
+import { AnimatePresence, motion } from "framer-motion";
+import { ValidationError } from "yup";
 
 const Main: React.FC = () => {
   // Stored Tasks States
@@ -43,6 +44,7 @@ const Main: React.FC = () => {
   );
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
   const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
+  const [taskErrorMessage, setTaskErrorMessage] = useState<string | null>(null);
 
   // Refs
   const categoriesMenuRef = useRef<HTMLDivElement>(null);
@@ -51,10 +53,21 @@ const Main: React.FC = () => {
     return getCategoryById(task.categoryId) || getDefaultCategory();
   };
 
-  const handleAddTask = () => {
-    if (input.trim()) {
+  const handleAddTask = async () => {
+    try {
+      await taskInputSchema.validate({ input });
+      if (!selectedCategoryId) {
+        setTaskErrorMessage("You forget to select a category -->");
+        setShowCategories(true);
+        return;
+      }
       addTask(input, selectedCategoryId || getDefaultCategory().id);
       setInput("");
+      setTaskErrorMessage(null);
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        setTaskErrorMessage(err.message);
+      }
     }
   };
 
@@ -136,73 +149,99 @@ const Main: React.FC = () => {
       />
 
       {/* ADD NEW TASK */}
-      <section className="flex flex-col">
-        <label htmlFor="taskInput" className="text-amber-800 font-bold">
-          T.A.S.K Creator
-        </label>
+      <div>
+        <section className="flex flex-col">
+          <label htmlFor="taskInput" className="text-amber-800 font-bold">
+            T.A.S.K Creator
+          </label>
 
-        <div className="flex flex-wrap lg:flex-nowrap">
-          <input
-            id="taskInput"
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Write your new task here ..."
-            className="flex-grow p-2 rounded-l bg-white border-2 border-amber-700 text-amber-900 focus:outline-none"
-            onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
-          />
+          <div className="flex flex-wrap lg:flex-nowrap">
+            <input
+              id="taskInput"
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Write your new task here ..."
+              className="flex-grow p-2 rounded-l bg-white border-2 border-amber-700 text-amber-900 focus:outline-none"
+              onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
+            />
 
-          <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-            <button
-              onClick={() => setShowCategories(!showCategories)}
-              className="lg:w-[50px] max-w-full flex justify-center items-center lg:text-xl font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
-            >
-              <span className="group-hover:scale-80 transition-transform duration-300 ease-in-out">
-                {getCategoryEmoji(
-                  categories,
-                  selectedCategoryId ||
-                    (categories.length > 0 ? categories[0].id : null)
-                )}
-              </span>
-            </button>
-
-            <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
+            <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
               <button
-                onClick={handleAddTask}
-                className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out text-2xl lg:text-xl font-bold bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
+                onClick={() => setShowCategories(!showCategories)}
+                className="lg:w-[50px] max-w-full flex justify-center items-center text-xl lg:text-sm font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
               >
-                ADD
+                <span className="group-hover:scale-80 transition-transform duration-300 ease-in-out">
+                  {getCategoryEmoji(
+                    categories,
+                    selectedCategoryId ||
+                      (categories.length > 0 ? categories[0].id : null)
+                  )}
+                </span>
               </button>
-            </div>
 
-            {/* CATEGORY SELECTION SUBMENU */}
-            {showCategories && (
-              <div
-                ref={categoriesMenuRef}
-                className="-left-1 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
-              >
-                <p className="text-xs font-bold text-amber-800">Categories:</p>
-                <Categories
-                  categories={categories}
-                  onSelectCategory={handleSelectCategory}
-                />
+              <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
+                <button
+                  onClick={handleAddTask}
+                  className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out text-2xl lg:text-xl font-bold bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
+                >
+                  ADD
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* TASKS LIST */}
-      <TasksList
-        tasks={filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks}
-        toggleComplete={toggleComplete}
-        getCategoryForTask={getCategoryForTask}
-        onDeleteTask={handleDeleteTask}
-      />
+              {/* CATEGORY SELECTION SUBMENU */}
+              {showCategories && (
+                <motion.div
+                  ref={categoriesMenuRef}
+                  className="right-14 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
+                  initial={{ opacity: 0, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="text-xs font-bold text-amber-800">
+                    Categories:
+                  </p>
+                  <Categories
+                    categories={categories}
+                    onSelectCategory={handleSelectCategory}
+                  />
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          <div className="h-5">
+            <AnimatePresence>
+              {taskErrorMessage && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.1 }}
+                  className="text-red-500 text-xs font-bold tracking-wider italic"
+                >
+                  {taskErrorMessage}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        </section>
+
+        {/* TASKS LIST */}
+        <TasksList
+          tasks={
+            filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks
+          }
+          toggleComplete={toggleComplete}
+          getCategoryForTask={getCategoryForTask}
+          onDeleteTask={handleDeleteTask}
+        />
+      </div>
 
       {/* SEPARATOR */}
       <section className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
-        <p className="pb-3">...</p>
+        <span className="pb-3">...</span>
       </section>
 
       {/* CATEGORIES LIST */}
