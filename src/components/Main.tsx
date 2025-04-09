@@ -8,25 +8,28 @@ import { useCategories } from "../hooks/useCategory";
 import { handleKeyPress } from "../utils/keyboard";
 import { getCategoryEmoji } from "../utils/category";
 import { Category, Task } from "../types";
+import { useTaskStore } from "../store/useTaskStore";
+import { useCategoryStore } from "../store/useCategoryStore";
 
 const Main: React.FC = () => {
-  // Tasks and Categories Hooks
-  const {
-    tasks,
-    addTask,
-    toggleComplete,
-    removeTasksByCategory,
-    removeTaskById,
-    getTasksByCategory,
-  } = useTasks();
+  // Stored Tasks States
+  const tasks = useTaskStore((state) => state.tasks);
+  const addTask = useTaskStore((state) => state.addTask);
+  const toggleComplete = useTaskStore((state) => state.toggleComplete);
+  const removeTasksByCategory = useTaskStore(
+    (state) => state.removeTasksByCategory
+  );
+  const removeTaskById = useTaskStore((state) => state.removeTaskById);
+  const getTasksByCategory = useTaskStore((state) => state.getTasksByCategory);
 
-  const {
-    categories,
-    addCategory,
-    deleteCategory,
-    getCategoryById,
-    getDefaultCategory,
-  } = useCategories();
+  // Stored Categories States
+  const categories = useCategoryStore((state) => state.categories);
+  const addCategory = useCategoryStore((state) => state.addCategory);
+  const deleteCategory = useCategoryStore((state) => state.deleteCategory);
+  const getCategoryById = useCategoryStore((state) => state.getCategoryById);
+  const getDefaultCategory = useCategoryStore(
+    (state) => state.getDefaultCategory
+  );
 
   // Main States
   const [input, setInput] = useState<string>("");
