@@ -1,6 +1,27 @@
 import { Category } from "../types";
 
 /**
+ * Extract emoji from name if present
+ * @param name The name string that may contain an emoji
+ * @returns An object with the extracted emoji and clean name
+ */
+export const extractEmojiFromName = (
+  name: string
+): { emoji: string; cleanName: string } => {
+  const emojiRegex = /^([\p{Emoji}\u200d]+)\s*/u;
+  const match = name.match(emojiRegex);
+
+  if (match) {
+    return {
+      emoji: match[1].trim(),
+      cleanName: name.slice(match[0].length).trim(),
+    };
+  }
+
+  return { emoji: "📁", cleanName: name };
+};
+
+/**
  * Find a category by its ID
  * @param categories List of categories to search in
  * @param id ID of the category to find

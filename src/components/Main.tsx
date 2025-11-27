@@ -3,8 +3,10 @@ import Categories from "./elements/CategoriesList";
 import TasksList from "./elements/TasksList";
 import EmojiPicker from "./elements/EmojiPicker";
 import CategoryFilter from "./elements/CategoryFilter";
+import ConfirmDeleteModal from "./elements/ConfirmDeleteModal";
 import { handleKeyPress } from "../utils/keyboard";
 import { getCategoryEmoji } from "../utils/category";
+import { getTaskCountForCategory } from "../utils/taskHelpers";
 import { Category, Task } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
 import { useCategoryStore } from "../store/useCategoryStore";
@@ -13,7 +15,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ValidationError } from "yup";
 
 const Main: React.FC = () => {
-  // Stored Tasks States
+  // Tasks States
   const tasks = useTaskStore((state) => state.tasks);
   const addTask = useTaskStore((state) => state.addTask);
   const toggleComplete = useTaskStore((state) => state.toggleComplete);
@@ -23,7 +25,7 @@ const Main: React.FC = () => {
   const removeTaskById = useTaskStore((state) => state.removeTaskById);
   const getTasksByCategory = useTaskStore((state) => state.getTasksByCategory);
 
-  // Stored Categories States
+  // Categories States
   const categories = useCategoryStore((state) => state.categories);
   const addCategory = useCategoryStore((state) => state.addCategory);
   const deleteCategory = useCategoryStore((state) => state.deleteCategory);
@@ -45,6 +47,11 @@ const Main: React.FC = () => {
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
   const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
   const [taskErrorMessage, setTaskErrorMessage] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{
+    id: string;
+    name: string;
+    emoji: string;
+  } | null>(null);
 
   // Refs
   const categoriesMenuRef = useRef<HTMLDivElement>(null);
@@ -57,11 +64,18 @@ const Main: React.FC = () => {
     try {
       await taskInputSchema.validate({ input });
       if (!selectedCategoryId) {
-        setTaskErrorMessage("You forget to select a category -->");
+        setTaskErrorMessage("You forgot to select a category -->");
         setShowCategories(true);
         return;
       }
-      addTask(input, selectedCategoryId || getDefaultCategory().id);
+      const category = getCategoryById(selectedCategoryId);
+      const apiCategoryId =
+        typeof category?.id === "number" ? category.id : undefined;
+      await addTask(
+        input,
+        selectedCategoryId || getDefaultCategory().id,
+        apiCategoryId
+      );
       setInput("");
       setTaskErrorMessage(null);
     } catch (err) {
@@ -79,8 +93,8 @@ const Main: React.FC = () => {
     setInput(e.target.value);
   };
 
-  const handleAddCategory = () => {
-    const newCategory = addCategory(categoryInput, selectedEmoji);
+  const handleAddCategory = async () => {
+    const newCategory = await addCategory(categoryInput, selectedEmoji);
     resetCategoryForm();
     return newCategory;
   };
@@ -97,16 +111,49 @@ const Main: React.FC = () => {
     setShowCategories(false);
   };
 
-  const handleDeleteCategory = (id: string) => {
-    deleteCategory(id);
-    removeTasksByCategory(id);
+  const handleDeleteCategory = async (id: string) => {
+    const category = getCategoryById(id);
+    if (!category) return;
 
-    if (selectedCategoryId === id) {
+    const taskCount = getTaskCountForCategory(tasks, id);
+
+    // If the category has associated tasks, show confirmation modal
+    if (taskCount > 0) {
+      setCategoryToDelete({
+        id: category.id.toString(),
+        name: category.name,
+        emoji: category.emoji,
+      });
+    } else {
+      // Otherwise, delete the category directly
+      await deleteCategory(id);
+      if (selectedCategoryId === id) {
+        setSelectedCategoryId(null);
+      }
+      if (filterCategoryId === id) {
+        setFilterCategoryId(null);
+      }
+    }
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+
+    await deleteCategory(categoryToDelete.id);
+    removeTasksByCategory(categoryToDelete.id);
+
+    if (selectedCategoryId === categoryToDelete.id) {
       setSelectedCategoryId(null);
     }
-    if (filterCategoryId === id) {
+    if (filterCategoryId === categoryToDelete.id) {
       setFilterCategoryId(null);
     }
+
+    setCategoryToDelete(null);
+  };
+
+  const cancelDeleteCategory = () => {
+    setCategoryToDelete(null);
   };
 
   const handleCategoryInputChange = (
@@ -122,7 +169,6 @@ const Main: React.FC = () => {
     }
   };
 
-  // UseEffect - Handle outside div click
   useEffect(() => {
     if (!showCategories) return;
 
@@ -141,6 +187,18 @@ const Main: React.FC = () => {
 
   return (
     <main className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
+      {/* CONFIRM DELETE CATEGORY MODAL */}
+      <ConfirmDeleteModal
+        isOpen={categoryToDelete !== null}
+        categoryName={
+          categoryToDelete
+            ? `${categoryToDelete.emoji} ${categoryToDelete.name}`
+            : ""
+        }
+        onConfirm={confirmDeleteCategory}
+        onCancel={cancelDeleteCategory}
+      />
+
       {/* CATEGORY FILTER */}
       <CategoryFilter
         categories={categories}
@@ -169,9 +227,9 @@ const Main: React.FC = () => {
             <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
               <button
                 onClick={() => setShowCategories(!showCategories)}
-                className="lg:w-[50px] max-w-full flex justify-center items-center text-xl lg:text-sm font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none hover:bg-amber-900 transition cursor-pointer leading-none"
+                className="lg:w-[50px] max-w-full flex justify-center items-center text-xl lg:text-sm font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none border-amber-700 hover:border-amber-900 border-2 hover:bg-amber-900 transition cursor-pointer leading-none"
               >
-                <span className="group-hover:scale-80 transition-transform duration-300 ease-in-out">
+                <span className="group-hover:scale-90 transition-transform duration-300 ease-in-out">
                   {getCategoryEmoji(
                     categories,
                     selectedCategoryId ||
@@ -183,9 +241,9 @@ const Main: React.FC = () => {
               <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
                 <button
                   onClick={handleAddTask}
-                  className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out text-2xl lg:text-xl font-bold bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
+                  className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out font-medium text-2xl lg:text-4xl bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
                 >
-                  ADD
+                  ↵
                 </button>
               </div>
 
