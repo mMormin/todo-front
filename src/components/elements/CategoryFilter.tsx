@@ -1,4 +1,3 @@
-import React from "react";
 import { Category } from "../../types";
 
 interface CategoryFilterProps {
@@ -7,11 +6,11 @@ interface CategoryFilterProps {
   setFilterCategoryId: (id: string | null) => void;
 }
 
-const CategoryFilter: React.FC<CategoryFilterProps> = ({
+const CategoryFilter = ({
   categories,
   filterCategoryId,
   setFilterCategoryId,
-}) => {
+}: CategoryFilterProps) => {
   return (
     <section className="bg-amber-200 p-3 rounded border-2 border-amber-700 flex justify-center items-center gap-2">
       <label className="flex text-amber-800 font-bold text-sm leading-4">

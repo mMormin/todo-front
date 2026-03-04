@@ -1,5 +1,3 @@
-import React from "react";
-
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   categoryName: string;
@@ -7,12 +5,12 @@ interface ConfirmDeleteModalProps {
   onCancel: () => void;
 }
 
-const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
+const ConfirmDeleteModal = ({
   isOpen,
   categoryName,
   onConfirm,
   onCancel,
-}) => {
+}: ConfirmDeleteModalProps) => {
   if (!isOpen) return null;
 
   return (

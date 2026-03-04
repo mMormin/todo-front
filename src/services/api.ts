@@ -90,7 +90,7 @@ export const categoriesApi = {
    * @param id - The category ID
    * @param updates - The fields to update
    */
-  update: async (id: number, updates: { name?: string }): Promise<Category> => {
+  update: async (id: number, updates: { name: string }): Promise<Category> => {
     try {
       const response = await apiClient.patch<ApiCategoryResponse>(
         `/categories/${id}/`,
@@ -233,5 +233,3 @@ export const tasksApi = {
     }
   },
 };
-
-export default apiClient;

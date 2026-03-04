@@ -5,7 +5,6 @@ import { Category } from "../types";
 import {
   findCategoryById,
   getDefaultCategory as getFirstCategory,
-  extractEmojiFromName,
 } from "../utils/category";
 import { categoriesApi } from "../services/api";
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { Category, Task } from "../../types";
 
 interface TasksListProps {
@@ -39,7 +38,7 @@ const TasksList: React.FC<TasksListProps> = ({
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggleComplete(task.id, task.apiId)}
+                    onChange={() => toggleComplete(task.id, task.id)}
                     className="mr-3 h-5 w-5 accent-amber-700"
                   />
                   <p
