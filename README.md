@@ -43,6 +43,12 @@ VITE_SENTRY_DSN=
 ```
 
 > In production (Vercel, Netlify), set both `VITE_API_URL` and `VITE_SENTRY_DSN` in the platform's environment variables. Sentry is automatically disabled in development (`enabled: PROD`).
+>
+> **Important:** `VITE_API_URL` must include the `/api` path prefix, matching the backend route structure. Example for production:
+> ```
+> VITE_API_URL=https://todo-back-z27h.onrender.com/api
+> ```
+> Setting it to `https://todo-back-z27h.onrender.com` (without `/api`) will result in 404 errors on all API calls.
 
 ## Scripts
 
