@@ -5,7 +5,7 @@ import EmojiPicker from "./elements/EmojiPicker";
 import CategoryFilter from "./elements/CategoryFilter";
 import ConfirmDeleteModal from "./elements/ConfirmDeleteModal";
 import { handleKeyPress } from "../utils/keyboard";
-import { getCategoryEmoji } from "../utils/category";
+import { getCategoryIcon } from "../utils/category";
 import { getTaskCountForCategory } from "../utils/taskHelpers";
 import { Category, Task } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
@@ -14,13 +14,13 @@ import { taskInputSchema } from "../validation/taskSchema";
 import { AnimatePresence, motion } from "framer-motion";
 import { ValidationError } from "yup";
 
-const Main: React.FC = () => {
+const Main: React.FC<{ isLoading?: boolean }> = ({ isLoading = false }) => {
   // Tasks States
   const tasks = useTaskStore((state) => state.tasks);
   const addTask = useTaskStore((state) => state.addTask);
   const toggleComplete = useTaskStore((state) => state.toggleComplete);
   const removeTasksByCategory = useTaskStore(
-    (state) => state.removeTasksByCategory
+    (state) => state.removeTasksByCategory,
   );
   const removeTaskById = useTaskStore((state) => state.removeTaskById);
   const getTasksByCategory = useTaskStore((state) => state.getTasksByCategory);
@@ -31,7 +31,7 @@ const Main: React.FC = () => {
   const deleteCategory = useCategoryStore((state) => state.deleteCategory);
   const getCategoryById = useCategoryStore((state) => state.getCategoryById);
   const getDefaultCategory = useCategoryStore(
-    (state) => state.getDefaultCategory
+    (state) => state.getDefaultCategory,
   );
 
   // Main States
@@ -42,7 +42,7 @@ const Main: React.FC = () => {
   const [showEmojiPickerForCategory, setShowEmojiPickerForCategory] =
     useState<boolean>(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null
+    null,
   );
   const [showCategoryInput, setShowCategoryInput] = useState<boolean>(false);
   const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
@@ -50,7 +50,7 @@ const Main: React.FC = () => {
   const [categoryToDelete, setCategoryToDelete] = useState<{
     id: string;
     name: string;
-    emoji: string;
+    icon: string;
   } | null>(null);
 
   // Refs
@@ -69,13 +69,8 @@ const Main: React.FC = () => {
         return;
       }
       const category = getCategoryById(selectedCategoryId);
-      const apiCategoryId =
-        typeof category?.id === "number" ? category.id : undefined;
-      await addTask(
-        input,
-        selectedCategoryId || getDefaultCategory().id,
-        apiCategoryId
-      );
+      if (!category) return;
+      await addTask(input, parseInt(category.id));
       setInput("");
       setTaskErrorMessage(null);
     } catch (err) {
@@ -122,7 +117,7 @@ const Main: React.FC = () => {
       setCategoryToDelete({
         id: category.id.toString(),
         name: category.name,
-        emoji: category.emoji,
+        icon: category.icon,
       });
     } else {
       // Otherwise, delete the category directly
@@ -157,7 +152,7 @@ const Main: React.FC = () => {
   };
 
   const handleCategoryInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setCategoryInput(e.target.value);
   };
@@ -168,6 +163,12 @@ const Main: React.FC = () => {
       setShowEmojiPickerForCategory(false);
     }
   };
+
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategoryId === null) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories]);
 
   useEffect(() => {
     if (!showCategories) return;
@@ -185,188 +186,206 @@ const Main: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCategories]);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-40">
+        <span className="text-4xl animate-bounce">⏳</span>
+        <p className="text-amber-800 font-bold tracking-wider text-sm">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <main className="w-full flex flex-col gap-4 bg-amber-100 p-6 rounded-lg shadow-lg border-4 border-amber-800">
+    <main className="relative w-full bg-amber-100 rounded-lg shadow-lg border-4 border-amber-800">
       {/* CONFIRM DELETE CATEGORY MODAL */}
       <ConfirmDeleteModal
         isOpen={categoryToDelete !== null}
         categoryName={
           categoryToDelete
-            ? `${categoryToDelete.emoji} ${categoryToDelete.name}`
+            ? `${categoryToDelete.icon} ${categoryToDelete.name}`
             : ""
         }
         onConfirm={confirmDeleteCategory}
         onCancel={cancelDeleteCategory}
       />
 
-      {/* CATEGORY FILTER */}
-      <CategoryFilter
-        categories={categories}
-        filterCategoryId={filterCategoryId}
-        setFilterCategoryId={setFilterCategoryId}
-      />
-
-      {/* ADD NEW TASK */}
-      <div>
-        <section className="flex flex-col">
-          <label htmlFor="taskInput" className="text-amber-800 font-bold">
-            T.A.S.K Creator
-          </label>
-
-          <div className="flex flex-wrap lg:flex-nowrap">
-            <input
-              id="taskInput"
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              placeholder="Write your new task here ..."
-              className="flex-grow p-2 rounded-l bg-white border-2 border-amber-700 text-amber-900 focus:outline-none"
-              onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
-            />
-
-            <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-              <button
-                onClick={() => setShowCategories(!showCategories)}
-                className="lg:w-[50px] max-w-full flex justify-center items-center text-xl lg:text-sm font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none border-amber-700 hover:border-amber-900 border-2 hover:bg-amber-900 transition cursor-pointer leading-none"
-              >
-                <span className="group-hover:scale-90 transition-transform duration-300 ease-in-out">
-                  {getCategoryEmoji(
-                    categories,
-                    selectedCategoryId ||
-                      (categories.length > 0 ? categories[0].id : null)
-                  )}
-                </span>
-              </button>
-
-              <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
-                <button
-                  onClick={handleAddTask}
-                  className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out font-medium text-2xl lg:text-4xl bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
-                >
-                  ↵
-                </button>
-              </div>
-
-              {/* CATEGORY SELECTION SUBMENU */}
-              {showCategories && (
-                <motion.div
-                  ref={categoriesMenuRef}
-                  className="right-14 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
-                  initial={{ opacity: 0, y: 0 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <p className="text-xs font-bold text-amber-800">
-                    Categories:
-                  </p>
-                  <Categories
-                    categories={categories}
-                    onSelectCategory={handleSelectCategory}
-                  />
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          <div className="h-5">
-            <AnimatePresence>
-              {taskErrorMessage && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.1 }}
-                  className="text-red-500 text-xs font-bold tracking-wider italic"
-                >
-                  {taskErrorMessage}
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
-        </section>
-
-        {/* TASKS LIST */}
-        <TasksList
-          tasks={
-            filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks
-          }
-          toggleComplete={toggleComplete}
-          getCategoryForTask={getCategoryForTask}
-          onDeleteTask={handleDeleteTask}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="flex flex-col gap-4 p-6"
+      >
+        {/* CATEGORY FILTER */}
+        <CategoryFilter
+          categories={categories}
+          filterCategoryId={filterCategoryId}
+          setFilterCategoryId={setFilterCategoryId}
         />
-      </div>
 
-      {/* SEPARATOR */}
-      <section className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
-        <span className="pb-3">...</span>
-      </section>
+        {/* ADD NEW TASK */}
+        <div>
+          <section className="flex flex-col">
+            <label htmlFor="taskInput" className="text-amber-800 font-bold">
+              T.A.S.K Creator
+            </label>
 
-      {/* CATEGORIES LIST */}
-      <section className="bg-amber-200 p-3 rounded border-2 border-amber-700">
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-amber-800 text-sm font-bold">
-            Available Categories:
-          </p>
-
-          <button
-            onClick={toggleCategoryInput}
-            className="bg-amber-700 text-amber-50 px-2 py-1 text-xs font-bold tracking-wide rounded hover:bg-amber-800 cursor-pointer"
-          >
-            {showCategoryInput ? "< Back" : "+ Add a category"}
-          </button>
-        </div>
-
-        {/* ADD NEW CATEGORY */}
-        {showCategoryInput && (
-          <div className="mb-3">
-            <div className="flex mb-2 relative">
-              <button
-                onClick={() =>
-                  setShowEmojiPickerForCategory(!showEmojiPickerForCategory)
-                }
-                className="p-2 rounded bg-amber-50 border-2 border-amber-800 text-2xl mr-2 cursor-pointer"
-              >
-                {selectedEmoji}
-              </button>
-
-              {showEmojiPickerForCategory && (
-                <EmojiPicker
-                  onSelect={(emoji) => {
-                    setSelectedEmoji(emoji);
-                    setShowEmojiPickerForCategory(false);
-                  }}
-                  onClose={() => setShowEmojiPickerForCategory(false)}
-                />
-              )}
-
+            <div className="flex flex-wrap lg:flex-nowrap">
               <input
+                id="taskInput"
                 type="text"
-                value={categoryInput}
-                onChange={handleCategoryInputChange}
-                placeholder="Category Name"
-                className="flex-grow p-2 rounded bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none text-sm"
-                onKeyUp={(e) => handleKeyPress(e, handleAddCategory)}
+                value={input}
+                onChange={handleInputChange}
+                placeholder="Write your new task here ..."
+                maxLength={50}
+                className="flex-grow p-2 rounded-l bg-white border-2 border-amber-700 text-amber-900 focus:outline-none"
+                onKeyUp={(e) => handleKeyPress(e, handleAddTask)}
               />
+
+              <div className="relative flex flex-col lg:flex-row gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                <button
+                  onClick={() => setShowCategories(!showCategories)}
+                  className="lg:w-[50px] max-w-full flex justify-center items-center text-xl lg:text-sm font-bold bg-amber-700 lg:-ml-1 group text-amber-50 px-4 h-10 lg:h-auto rounded lg:rounded-l-none border-amber-700 hover:border-amber-900 border-2 hover:bg-amber-900 transition cursor-pointer leading-none"
+                >
+                  <span className="group-hover:scale-90 transition-transform duration-300 ease-in-out">
+                    {getCategoryIcon(
+                      categories,
+                      selectedCategoryId ||
+                        (categories.length > 0 ? categories[0].id : null),
+                    )}
+                  </span>
+                </button>
+
+                <div className="lg:w-[50px] h-10 lg:h-auto flex justify-center items-center ">
+                  <button
+                    onClick={handleAddTask}
+                    className="lg:hover:scale-87 w-full h-full tracking-wider transition-transform duration-300 ease-in-out font-medium text-2xl lg:text-4xl bg-amber-800 text-amber-50 px-4 lg:px-0 rounded hover:bg-amber-900 cursor-pointer leading-none"
+                  >
+                    ↵
+                  </button>
+                </div>
+
+                {/* CATEGORY SELECTION SUBMENU */}
+                {showCategories && (
+                  <motion.div
+                    ref={categoriesMenuRef}
+                    className="right-14 p-2 bg-amber-50 border-2 border-amber-800 rounded mb-2 flex flex-wrap gap-2 absolute"
+                    initial={{ opacity: 0, y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <p className="text-xs font-bold text-amber-800">
+                      Categories:
+                    </p>
+                    <Categories
+                      categories={categories}
+                      onSelectCategory={handleSelectCategory}
+                    />
+                  </motion.div>
+                )}
+              </div>
             </div>
 
-            <button
-              onClick={handleAddCategory}
-              className="w-full bg-amber-800 text-amber-50 font-bold px-3 py-1 rounded hover:bg-amber-900 text-sm cursor-pointer"
-            >
-              + Add The New Category
-            </button>
-          </div>
-        )}
+            <div className="h-5">
+              <AnimatePresence>
+                {taskErrorMessage && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.1 }}
+                    className="text-red-500 text-xs font-bold tracking-wider italic"
+                  >
+                    {taskErrorMessage}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </section>
 
-        {/* CATEGORIES LIST */}
-        <div className="flex flex-wrap gap-2">
-          <Categories
-            categories={categories}
-            onDeleteCategory={handleDeleteCategory}
+          {/* TASKS LIST */}
+          <TasksList
+            tasks={
+              filterCategoryId ? getTasksByCategory(filterCategoryId) : tasks
+            }
+            toggleComplete={toggleComplete}
+            getCategoryForTask={getCategoryForTask}
+            onDeleteTask={handleDeleteTask}
           />
         </div>
-      </section>
+
+        {/* SEPARATOR */}
+        <section className="w-full flex justify-center items-center text-center h-5 text-3xl font-bold leading-3 tracking-wider text-amber-700">
+          <span className="pb-3">...</span>
+        </section>
+
+        {/* CATEGORIES LIST */}
+        <section className="bg-amber-200 p-3 rounded border-2 border-amber-700">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-amber-800 text-sm font-bold">
+              Available Categories:
+            </p>
+
+            <button
+              onClick={toggleCategoryInput}
+              className="bg-amber-700 text-amber-50 px-2 py-1 text-xs font-bold tracking-wide rounded hover:bg-amber-800 cursor-pointer"
+            >
+              {showCategoryInput ? "< Back" : "+ Add a category"}
+            </button>
+          </div>
+
+          {/* ADD NEW CATEGORY */}
+          {showCategoryInput && (
+            <div className="mb-3">
+              <div className="flex mb-2 relative">
+                <button
+                  onClick={() =>
+                    setShowEmojiPickerForCategory(!showEmojiPickerForCategory)
+                  }
+                  className="p-2 rounded bg-amber-50 border-2 border-amber-800 text-2xl mr-2 cursor-pointer"
+                >
+                  {selectedEmoji}
+                </button>
+
+                {showEmojiPickerForCategory && (
+                  <EmojiPicker
+                    onSelect={(emoji) => {
+                      setSelectedEmoji(emoji);
+                      setShowEmojiPickerForCategory(false);
+                    }}
+                    onClose={() => setShowEmojiPickerForCategory(false)}
+                  />
+                )}
+
+                <input
+                  type="text"
+                  value={categoryInput}
+                  onChange={handleCategoryInputChange}
+                  placeholder="Category Name"
+                  maxLength={50}
+                  className="flex-grow p-2 rounded bg-amber-50 border-2 border-amber-800 text-amber-900 focus:outline-none text-sm"
+                  onKeyUp={(e) => handleKeyPress(e, handleAddCategory)}
+                />
+              </div>
+
+              <button
+                onClick={handleAddCategory}
+                className="w-full bg-amber-800 text-amber-50 font-bold px-3 py-1 rounded hover:bg-amber-900 text-sm cursor-pointer"
+              >
+                + Add The New Category
+              </button>
+            </div>
+          )}
+
+          {/* CATEGORIES LIST */}
+          <div className="flex flex-wrap gap-2">
+            <Categories
+              categories={categories}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          </div>
+        </section>
+      </motion.div>
     </main>
   );
 };
