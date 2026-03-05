@@ -1,23 +1,9 @@
 import React, { useEffect } from "react";
-import * as Sentry from "@sentry/react";
 import Main from "./Main";
 import Header from "./layout/Header";
 import Footer from "./layout/Footer";
 import { useCategoryStore } from "../store/useCategoryStore";
 import { useTaskStore } from "../store/useTaskStore";
-
-function SentryTestButton() {
-  return (
-    <button
-      className="text-xs text-red-400 underline"
-      onClick={() => {
-        throw new Error("Sentry test error");
-      }}
-    >
-      Test Sentry
-    </button>
-  );
-}
 
 function App() {
   const fetchCategories = useCategoryStore((state) => state.fetchCategories);
@@ -40,7 +26,6 @@ function App() {
       </div>
 
       <Footer />
-      <SentryTestButton />
     </div>
   );
 }
