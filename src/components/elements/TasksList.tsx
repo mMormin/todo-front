@@ -2,7 +2,7 @@ import { Category, Task } from "../../types";
 
 interface TasksListProps {
   tasks: Task[];
-  toggleComplete: (id: number, apiId?: number) => void;
+  toggleComplete: (id: number) => void;
   getCategoryForTask: (task: Task) => Category;
   onDeleteTask: (id: number) => void;
 }
@@ -38,7 +38,7 @@ const TasksList: React.FC<TasksListProps> = ({
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggleComplete(task.id, task.id)}
+                    onChange={() => toggleComplete(task.id)}
                     className="mr-3 h-5 w-5 accent-amber-700"
                   />
                   <p
@@ -51,7 +51,7 @@ const TasksList: React.FC<TasksListProps> = ({
                     {task.text}
                   </p>
                   <span className="bg-amber-200 text-amber-800 px-2 py-1 text-xs rounded-full flex items-center">
-                    <span className="mr-1">{category.emoji}</span>
+                    <span className="mr-1">{category.icon}</span>
                     {category.name && `#${category.name}`}
                   </span>
 

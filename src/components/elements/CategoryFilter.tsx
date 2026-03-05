@@ -25,7 +25,7 @@ const CategoryFilter = ({
         <option value="">All Categories</option>
         {categories.map((cat) => (
           <option key={cat.id} value={cat.id}>
-            {cat.emoji} {cat.name}
+            {cat.icon} {cat.name}
           </option>
         ))}
       </select>

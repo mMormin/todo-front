@@ -1,7 +1,7 @@
 export interface Category {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
   created_at?: string;
   updated_at?: string;
 }

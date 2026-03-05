@@ -15,19 +15,19 @@ export const findCategoryById = (
 };
 
 /**
- * Get emoji for a given category ID
+ * Get icon for a given category ID
  * @param categories List of categories
  * @param id ID of the category
- * @param defaultEmoji Fallback emoji if category not found
- * @returns Emoji of the category or default emoji
+ * @param defaultIcon Fallback icon if category not found
+ * @returns Icon of the category or default icon
  */
-export const getCategoryEmoji = (
+export const getCategoryIcon = (
   categories: Category[],
   id: string | null,
-  defaultEmoji: string = "😃"
+  defaultIcon: string = "😃"
 ): string => {
   const category = findCategoryById(categories, id);
-  return category?.emoji || defaultEmoji;
+  return category?.icon || defaultIcon;
 };
 
 /**
@@ -37,7 +37,7 @@ export const getCategoryEmoji = (
  */
 export const getDefaultCategory = (categories: Category[]): Category => {
   if (categories.length === 0) {
-    return { id: "default", name: "Default", emoji: "📝" };
+    return { id: "default", name: "Default", icon: "📝" };
   }
   return categories[0];
 };

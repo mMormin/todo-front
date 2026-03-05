@@ -19,7 +19,7 @@ const CategoriesList: React.FC<CategoryProps> = ({
           key={category.id}
           className="group relative bg-amber-100 text-amber-800 px-2 py-1 text-xs rounded-full border border-amber-600 flex items-center cursor-pointer transition-all"
         >
-          <span className="mr-1">{category.emoji}</span>
+          <span className="mr-1">{category.icon}</span>
 
           {category.name && `#${category.name}`}
 

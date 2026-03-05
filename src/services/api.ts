@@ -1,16 +1,17 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { Category, Task } from "../types";
 
 // API response type adapters
 type ApiCategoryResponse = {
   id: number;
   name: string;
+  icon: string;
   created_at: string;
   updated_at: string;
 };
 type ApiTaskResponse = {
   id: number;
-  description: string;
+  title: string;
   is_completed: boolean;
   category: number;
   category_name: string;
@@ -29,47 +30,51 @@ const apiClient = axios.create({
   },
 });
 
+// Response interceptor: categorizes errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (!error.response) {
+      // Network error (no connection, timeout, CORS…)
+      console.error("[Network Error]", error.message);
+    } else {
+      const { status } = error.response;
+      if (status >= 500) {
+        console.error(`[Server Error ${status}]`, error.response.data);
+      } else if (status >= 400) {
+        console.warn(`[Client Error ${status}]`, error.response.data);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const categoriesApi = {
   /**
    * Get all categories
    */
   getAll: async (): Promise<Category[]> => {
-    try {
-      const response = await apiClient.get<ApiCategoryResponse[]>(
-        "/categories/"
-      );
-      return response.data.map((cat) => ({
-        ...cat,
-        id: cat.id.toString(),
-        emoji: "📁", // Default emoji
-      }));
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      throw error;
-    }
+    const response = await apiClient.get<ApiCategoryResponse[]>("/categories/");
+    return response.data.map((cat) => ({
+      ...cat,
+      id: cat.id.toString(),
+    }));
   },
 
   /**
    * Create a new category
    * @param name - The category name
+   * @param icon - The category icon (emoji)
    */
-  create: async (name: string): Promise<Category> => {
-    try {
-      const response = await apiClient.post<ApiCategoryResponse>(
-        "/categories/",
-        {
-          name,
-        }
-      );
-      return {
-        ...response.data,
-        id: response.data.id.toString(),
-        emoji: "📁",
-      };
-    } catch (error) {
-      console.error("Error creating category:", error);
-      throw error;
-    }
+  create: async (name: string, icon: string): Promise<Category> => {
+    const response = await apiClient.post<ApiCategoryResponse>("/categories/", {
+      name,
+      icon,
+    });
+    return {
+      ...response.data,
+      id: response.data.id.toString(),
+    };
   },
 
   /**
@@ -77,12 +82,7 @@ export const categoriesApi = {
    * @param id - The category ID
    */
   delete: async (id: number): Promise<void> => {
-    try {
-      await apiClient.delete(`/categories/${id}/`);
-    } catch (error) {
-      console.error(`Error deleting category ${id}:`, error);
-      throw error;
-    }
+    await apiClient.delete(`/categories/${id}/`);
   },
 
   /**
@@ -91,20 +91,14 @@ export const categoriesApi = {
    * @param updates - The fields to update
    */
   update: async (id: number, updates: { name: string }): Promise<Category> => {
-    try {
-      const response = await apiClient.patch<ApiCategoryResponse>(
-        `/categories/${id}/`,
-        updates
-      );
-      return {
-        ...response.data,
-        id: response.data.id.toString(),
-        emoji: "📁",
-      };
-    } catch (error) {
-      console.error(`Error updating category ${id}:`, error);
-      throw error;
-    }
+    const response = await apiClient.patch<ApiCategoryResponse>(
+      `/categories/${id}/`,
+      updates
+    );
+    return {
+      ...response.data,
+      id: response.data.id.toString(),
+    };
   },
 };
 
@@ -114,24 +108,19 @@ export const tasksApi = {
    * @param categoryId - Optional filter by category ID
    */
   getAll: async (categoryId?: number): Promise<Task[]> => {
-    try {
-      const params = categoryId ? { category_id: categoryId } : {};
-      const response = await apiClient.get<ApiTaskResponse[]>("/tasks/", {
-        params,
-      });
-      return response.data.map((task) => ({
-        id: task.id,
-        text: task.description,
-        categoryId: task.category.toString(),
-        completed: task.is_completed,
-        category_name: task.category_name,
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-      }));
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      throw error;
-    }
+    const params = categoryId ? { category_id: categoryId } : {};
+    const response = await apiClient.get<ApiTaskResponse[]>("/tasks/", {
+      params,
+    });
+    return response.data.map((task) => ({
+      id: task.id,
+      text: task.title,
+      categoryId: task.category.toString(),
+      completed: task.is_completed,
+      category_name: task.category_name,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    }));
   },
 
   /**
@@ -139,55 +128,45 @@ export const tasksApi = {
    * @param id - The task ID
    */
   getById: async (id: number): Promise<Task> => {
-    try {
-      const response = await apiClient.get<ApiTaskResponse>(`/tasks/${id}/`);
-      const task = response.data;
-      return {
-        id: task.id,
-        text: task.description,
-        categoryId: task.category.toString(),
-        completed: task.is_completed,
-        category_name: task.category_name,
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-      };
-    } catch (error) {
-      console.error(`Error fetching task ${id}:`, error);
-      throw error;
-    }
+    const response = await apiClient.get<ApiTaskResponse>(`/tasks/${id}/`);
+    const task = response.data;
+    return {
+      id: task.id,
+      text: task.title,
+      categoryId: task.category.toString(),
+      completed: task.is_completed,
+      category_name: task.category_name,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    };
   },
 
   /**
    * Create a new task
-   * @param description - The task description
+   * @param title - The task title
    * @param categoryId - The category ID
    * @param isCompleted - Completion status (optional)
    */
   create: async (
-    description: string,
+    title: string,
     categoryId: number,
     isCompleted: boolean = false
   ): Promise<Task> => {
-    try {
-      const response = await apiClient.post<ApiTaskResponse>("/tasks/", {
-        description,
-        category: categoryId,
-        is_completed: isCompleted,
-      });
-      const task = response.data;
-      return {
-        id: task.id,
-        text: task.description,
-        categoryId: task.category.toString(),
-        completed: task.is_completed,
-        category_name: task.category_name,
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-      };
-    } catch (error) {
-      console.error("Error creating task:", error);
-      throw error;
-    }
+    const response = await apiClient.post<ApiTaskResponse>("/tasks/", {
+      title,
+      category: categoryId,
+      is_completed: isCompleted,
+    });
+    const task = response.data;
+    return {
+      id: task.id,
+      text: task.title,
+      categoryId: task.category.toString(),
+      completed: task.is_completed,
+      category_name: task.category_name,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    };
   },
 
   /**
@@ -197,27 +176,22 @@ export const tasksApi = {
    */
   update: async (
     id: number,
-    updates: { description?: string; is_completed?: boolean; category?: number }
+    updates: { title?: string; is_completed?: boolean; category?: number }
   ): Promise<Task> => {
-    try {
-      const response = await apiClient.patch<ApiTaskResponse>(
-        `/tasks/${id}/`,
-        updates
-      );
-      const task = response.data;
-      return {
-        id: task.id,
-        text: task.description,
-        categoryId: task.category.toString(),
-        completed: task.is_completed,
-        category_name: task.category_name,
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-      };
-    } catch (error) {
-      console.error(`Error updating task ${id}:`, error);
-      throw error;
-    }
+    const response = await apiClient.patch<ApiTaskResponse>(
+      `/tasks/${id}/`,
+      updates
+    );
+    const task = response.data;
+    return {
+      id: task.id,
+      text: task.title,
+      categoryId: task.category.toString(),
+      completed: task.is_completed,
+      category_name: task.category_name,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    };
   },
 
   /**
@@ -225,11 +199,6 @@ export const tasksApi = {
    * @param id - The task ID
    */
   delete: async (id: number): Promise<void> => {
-    try {
-      await apiClient.delete(`/tasks/${id}/`);
-    } catch (error) {
-      console.error(`Error deleting task ${id}:`, error);
-      throw error;
-    }
+    await apiClient.delete(`/tasks/${id}/`);
   },
 };
