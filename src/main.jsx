@@ -13,6 +13,8 @@ Sentry.init({
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <Sentry.ErrorBoundary fallback={<p>Une erreur est survenue.</p>}>
+      <App />
+    </Sentry.ErrorBoundary>
   </StrictMode>
 );
