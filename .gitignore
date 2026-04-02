@@ -23,6 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
+.claude
 .vinxi
 .output
