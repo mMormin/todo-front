@@ -1,29 +1,10 @@
-name: CI - Todo App Tests
+name: CI - Frontend
 
 on:
   push:
   pull_request:
 
 jobs:
-  test-backend:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout backend
-        uses: actions/checkout@v4
-        with:
-          repository: mMormin/todo-back
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run tests
-        run: pytest
-
   test-frontend:
     runs-on: ubuntu-latest
 
