@@ -67,19 +67,101 @@ pnpm build
 
 # Preview the build
 pnpm preview
+
+# Unit tests (run once)
+pnpm test
+
+# Unit tests (watch mode)
+pnpm test:watch
+
+# Unit tests with coverage
+pnpm test:coverage
+
+# E2E tests (headless)
+pnpm e2e
+
+# E2E tests with Playwright UI
+pnpm e2e:ui
+
+# E2E tests in headed mode
+pnpm e2e:headed
 ```
 
 ## Project Structure
 
 ```
 src/
-├── components/       # React components (App, Main, UI elements, layout)
-├── services/         # Axios API calls (api.ts)
-├── store/            # Zustand stores (tasks, categories)
-├── types/            # TypeScript types
-├── utils/            # Utility functions
-└── validation/       # Yup validation schemas
+├── components/
+│   ├── App.tsx               # Root component — initial data fetching
+│   ├── Main.tsx              # Main UI logic and orchestration
+│   ├── layout/
+│   │   ├── Header.tsx        # App header
+│   │   └── Footer.tsx        # App footer
+│   └── elements/
+│       ├── TasksList.tsx         # Task list display
+│       ├── CategoriesList.tsx    # Category list and selection
+│       ├── CategoryFilter.tsx    # Dropdown filter by category
+│       ├── EmojiPicker.tsx       # Emoji picker for categories
+│       └── ConfirmDeleteModal.tsx # Delete confirmation dialog
+├── services/
+│   └── api.ts            # Axios API client (tasks + categories)
+├── store/
+│   ├── useTaskStore.tsx      # Zustand store for tasks
+│   └── useCategoryStore.tsx  # Zustand store for categories
+├── types/
+│   └── index.ts          # TypeScript interfaces (Task, Category)
+├── utils/
+│   ├── task.ts           # Task text parsing (hashtag support)
+│   ├── category.ts       # Category helpers
+│   ├── keyboard.ts       # Keyboard event utilities
+│   └── taskHelpers.ts    # Task count helpers
+└── validation/
+    └── taskSchema.ts     # Yup schema for task input
 ```
+
+Path alias `@` is configured to point to `src/` (e.g. `import { ... } from "@/store/useTaskStore"`).
+
+## Key Features
+
+- Create, update, and delete tasks and categories
+- Filter tasks by category
+- Emoji icons for categories
+- Delete confirmation modal when a category has associated tasks
+- Optimistic UI updates with error rollback
+- Enter key to submit forms
+- Responsive layout (mobile and desktop)
+
+## API Layer
+
+`src/services/api.ts` exposes two namespaced clients:
+
+- `tasksApi` — `getAll`, `getById`, `create`, `update`, `delete`
+- `categoriesApi` — `getAll`, `create`, `update`, `delete`
+
+API responses use snake_case (`is_completed`, `category`) and are mapped to camelCase on the frontend (`completed`, `categoryId`).
+
+## Tests
+
+The project has two levels of testing:
+
+**Unit / integration tests** — [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/)
+
+Located in `src/tests/`:
+- `AddTaskForm.test.tsx`
+- `CategoriesList.test.tsx`
+- `CategoryFilter.test.tsx`
+- `ConfirmDeleteModal.test.tsx`
+- `TasksList.test.tsx`
+- `TasksListWithAPI.test.tsx`
+
+Run in jsdom with `@testing-library/jest-dom` matchers (`src/tests/setup.ts`).
+
+**End-to-end tests** — [Playwright](https://playwright.dev/) (Chromium)
+
+Located in `e2e/`:
+- `task-creation-and-filter.spec.ts`
+
+Runs against `http://localhost:5173` (single worker to avoid DB conflicts, 1 retry for network flakiness).
 
 ## Backend
 
